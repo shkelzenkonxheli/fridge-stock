@@ -74,7 +74,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           alt="Background"
           fill
           priority
-          className="object-cover object-[center_38%] scale-[1.04]"
+          className="object-cover object-[center_38%] scale-[0.84]"
           sizes="100vw"
         />
       </div>
