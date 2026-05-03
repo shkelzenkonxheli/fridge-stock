@@ -67,22 +67,22 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const errorMessage = getErrorMessage(resolvedSearchParams?.error);
 
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+    <main className="relative min-h-screen overflow-hidden">
       <div className="absolute inset-0">
         <Image
           src="/bg.jpeg"
           alt="Background"
           fill
           priority
-          className="object-cover object-[center_38%] scale-[0.84]"
+          className="object-cover object-center"
           sizes="100vw"
         />
       </div>
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.5)_0%,rgba(2,6,23,0.66)_100%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_left,rgba(2,6,23,0.56)_0%,transparent_34%),radial-gradient(circle_at_right,rgba(2,6,23,0.46)_0%,transparent_34%),radial-gradient(circle_at_top_left,rgba(34,211,238,0.12)_0%,transparent_28%)]" />
-      <div className="absolute inset-0 backdrop-blur-[0.5px]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.42)_0%,rgba(2,6,23,0.58)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_left,rgba(2,6,23,0.38)_0%,transparent_28%),radial-gradient(circle_at_right,rgba(2,6,23,0.32)_0%,transparent_28%),radial-gradient(circle_at_top_left,rgba(34,211,238,0.08)_0%,transparent_22%)]" />
+      <div className="absolute inset-0 backdrop-blur-[0.25px]" />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-5xl items-center justify-center">
+      <div className="relative flex min-h-screen items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
         <section className="w-full max-w-md rounded-[32px] border border-white/25 bg-white/92 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.32)] backdrop-blur-xl sm:p-8">
           <div className="flex flex-col items-center text-center">
             <div className="relative h-16 w-16 overflow-hidden rounded-[22px] border border-slate-200 bg-white p-1 shadow-sm">
