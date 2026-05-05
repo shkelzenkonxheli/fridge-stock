@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ProductModelPicker } from "@/app/components/product-model-picker";
 import { UploadedImage } from "@/app/components/uploaded-image";
 
 type OrderVariant = {
@@ -19,6 +20,7 @@ type ProductOption = {
   id: number;
   name: string;
   brand: string;
+  imagePath: string | null;
 };
 
 type OrderFormProps = {
@@ -34,6 +36,7 @@ type OrderItemRow = {
   productId: string;
   variantId: string;
   quantity: string;
+  unitPrice: string;
   committed: boolean;
 };
 
@@ -50,6 +53,7 @@ function createEmptyRow(): OrderItemRow {
     productId: "",
     variantId: "",
     quantity: "1",
+    unitPrice: "",
     committed: false,
   };
 }
@@ -271,6 +275,7 @@ export function OrderForm({ action, products }: OrderFormProps) {
             ...row,
             productId: value,
             variantId: "",
+            unitPrice: "",
             committed: false,
           };
         }
@@ -314,7 +319,9 @@ export function OrderForm({ action, products }: OrderFormProps) {
       !rowToCommit ||
       !rowToCommit.productId ||
       !rowToCommit.variantId ||
-      Number(rowToCommit.quantity) <= 0
+      Number(rowToCommit.quantity) <= 0 ||
+      Number(rowToCommit.unitPrice) < 0 ||
+      Number.isNaN(Number(rowToCommit.unitPrice))
     ) {
       return;
     }
@@ -397,17 +404,24 @@ export function OrderForm({ action, products }: OrderFormProps) {
         rowId: row.id,
         ...variant,
         quantity: Number(row.quantity) || 0,
+        unitPrice: Number(row.unitPrice) || variant.price,
       };
     })
     .filter(
-      (item): item is OrderVariant & { rowId: string; quantity: number } =>
+      (
+        item,
+      ): item is OrderVariant & {
+        rowId: string;
+        quantity: number;
+        unitPrice: number;
+      } =>
         item !== null,
     );
 
   const pendingRows = rows.filter((row) => !row.committed).slice(0, 1);
 
   const subtotal = selectedItems.reduce(
-    (sum, item) => sum + item.quantity * item.price,
+    (sum, item) => sum + item.quantity * item.unitPrice,
     0,
   );
   const shipping = 0;
@@ -418,8 +432,15 @@ export function OrderForm({ action, products }: OrderFormProps) {
       .map((row) => ({
         variantId: Number(row.variantId),
         quantity: Number(row.quantity),
+        unitPrice: Number(row.unitPrice),
       }))
-      .filter((row) => row.variantId > 0 && row.quantity > 0),
+      .filter(
+        (row) =>
+          row.variantId > 0 &&
+          row.quantity > 0 &&
+          Number.isFinite(row.unitPrice) &&
+          row.unitPrice >= 0,
+      ),
   );
 
   return (
@@ -564,20 +585,14 @@ export function OrderForm({ action, products }: OrderFormProps) {
                       <label className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                         Produkti
                       </label>
-                      <select
-                        value={row.productId}
-                        onChange={(event) =>
-                          updateRow(row.id, "productId", event.target.value)
-                        }
-                        className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
-                      >
-                        <option value="">Zgjidh produktin</option>
-                        {brandProducts.map((product) => (
-                          <option key={product.id} value={product.id}>
-                            {product.name}
-                          </option>
-                        ))}
-                      </select>
+                      <ProductModelPicker
+                        products={brandProducts}
+                        selectedProductId={row.productId}
+                        onSelect={(value) => updateRow(row.id, "productId", value)}
+                        disabled={!row.brand}
+                        placeholder={!row.brand ? "Zgjidh brandin" : "Zgjidh produktin"}
+                        emptyLabel="Nuk ka modele per kete brand."
+                      />
                     </div>
 
                     <div className="space-y-2">
@@ -586,9 +601,22 @@ export function OrderForm({ action, products }: OrderFormProps) {
                       </label>
                       <select
                         value={row.variantId}
-                        onChange={(event) =>
-                          updateRow(row.id, "variantId", event.target.value)
-                        }
+                        onChange={(event) => {
+                          const nextVariantId = event.target.value;
+                          updateRow(row.id, "variantId", nextVariantId);
+
+                          const nextVariant = filteredVariants.find(
+                            (variant) => variant.id === Number(nextVariantId),
+                          );
+
+                          if (nextVariant) {
+                            updateRow(
+                              row.id,
+                              "unitPrice",
+                              nextVariant.price.toFixed(2),
+                            );
+                          }
+                        }}
                         disabled={!row.productId || isLoadingVariants}
                         className="h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-60"
                       >
@@ -633,10 +661,22 @@ export function OrderForm({ action, products }: OrderFormProps) {
                       <label className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                         Cmimi
                       </label>
-                      <div className="flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-center text-sm font-semibold text-slate-900">
-                        {selectedVariant
-                          ? `${selectedVariant.price.toFixed(2)} EUR`
-                          : "-"}
+                      <div className="relative">
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">
+                          €
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={row.unitPrice}
+                          onChange={(event) =>
+                            updateRow(row.id, "unitPrice", event.target.value)
+                          }
+                          disabled={!selectedVariant}
+                          className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-8 pr-3 text-center text-sm font-semibold text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                          placeholder={selectedVariant ? "0.00" : "-"}
+                        />
                       </div>
                     </div>
 
@@ -719,7 +759,7 @@ export function OrderForm({ action, products }: OrderFormProps) {
 
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-semibold text-slate-900">
-                        {item.price.toFixed(2)} EUR
+                        {item.unitPrice.toFixed(2)} EUR
                       </span>
                       <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                         x{item.quantity}

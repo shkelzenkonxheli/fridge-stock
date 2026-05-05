@@ -1,0 +1,2 @@
+ALTER TABLE "OrderItem"
+ADD COLUMN "unitPrice" DECIMAL(10, 2);

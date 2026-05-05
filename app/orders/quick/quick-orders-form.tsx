@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { ProductModelPicker } from "@/app/components/product-model-picker";
 import { UploadedImage } from "@/app/components/uploaded-image";
 
 type ProductOption = {
@@ -34,6 +35,7 @@ type QuickOrderRow = {
   productId: string;
   variantId: string;
   quantity: string;
+  unitPrice: string;
 };
 
 const sourceOptions: Array<{ value: OrderSource; label: string }> = [
@@ -42,12 +44,17 @@ const sourceOptions: Array<{ value: OrderSource; label: string }> = [
   { value: "WHOLESALE", label: "Shumice" },
 ];
 
-function createRow(productId: number, variantId: number): QuickOrderRow {
+function createRow(
+  productId: number,
+  variantId: number,
+  unitPrice: number,
+): QuickOrderRow {
   return {
     id: crypto.randomUUID(),
     productId: String(productId),
     variantId: String(variantId),
     quantity: "1",
+    unitPrice: unitPrice.toFixed(2),
   };
 }
 
@@ -220,8 +227,12 @@ export function QuickOrdersForm({ action, products }: QuickOrdersFormProps) {
       .map((row) => ({
         variantId: Number(row.variantId),
         quantity: Number(row.quantity),
+        unitPrice: Number(row.unitPrice),
       }))
-      .filter((row) => row.variantId > 0 && row.quantity > 0),
+      .filter(
+        (row) =>
+          row.variantId > 0 && row.quantity > 0 && Number.isFinite(row.unitPrice),
+      ),
   );
 
   const totalQuantity = rows.reduce(
@@ -275,7 +286,13 @@ export function QuickOrdersForm({ action, products }: QuickOrdersFormProps) {
         );
       }
 
-      return [...currentRows, createRow(productId, variantId)];
+      const selectedVariant = currentVariants.find((item) => item.id === variantId);
+
+      if (!selectedVariant) {
+        return currentRows;
+      }
+
+      return [...currentRows, createRow(productId, variantId, selectedVariant.price)];
     });
 
     setSelectedVariantId("");
@@ -340,6 +357,19 @@ export function QuickOrdersForm({ action, products }: QuickOrdersFormProps) {
     setRows((currentRows) => currentRows.filter((row) => row.id !== rowId));
   };
 
+  const updateUnitPrice = (rowId: string, value: string) => {
+    setRows((currentRows) =>
+      currentRows.map((row) =>
+        row.id === rowId
+          ? {
+              ...row,
+              unitPrice: value,
+            }
+          : row,
+      ),
+    );
+  };
+
   return (
     <form action={action} className="mt-8 space-y-5">
       <input type="hidden" name="source" value={source} />
@@ -389,24 +419,17 @@ export function QuickOrdersForm({ action, products }: QuickOrdersFormProps) {
             ))}
           </select>
 
-          <select
-            value={selectedProductId}
-            onChange={(event) => {
-              setSelectedProductId(event.target.value);
+          <ProductModelPicker
+            products={filteredProducts}
+            selectedProductId={selectedProductId}
+            onSelect={(value) => {
+              setSelectedProductId(value);
               setSelectedVariantId("");
             }}
             disabled={!selectedBrand}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <option value="">
-              {!selectedBrand ? "Zgjidh Brandin" : "Zgjidh Modelin"}
-            </option>
-            {filteredProducts.map((product) => (
-              <option key={product.id} value={product.id}>
-                {product.name}
-              </option>
-            ))}
-          </select>
+            placeholder={!selectedBrand ? "Zgjidh Brandin" : "Zgjidh Modelin"}
+            emptyLabel="Nuk ka modele per kete brand."
+          />
 
           <select
             value={selectedVariantId}
@@ -444,11 +467,11 @@ export function QuickOrdersForm({ action, products }: QuickOrdersFormProps) {
 
         <div className="px-5 py-3">
           <div className="hidden grid-cols-[minmax(0,1.5fr)_minmax(160px,1fr)_120px_120px_80px] gap-5 border-b border-slate-100 pb-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 md:grid">
-            <span>Produkti</span>
-            <span>Varianti</span>
-            <span>Cmimi</span>
-            <span>Sasia</span>
-            <span className="text-right">Aksionet</span>
+                    <span>Produkti</span>
+                    <span>Varianti</span>
+                    <span>Cmimi shitjes</span>
+                    <span>Sasia</span>
+                    <span className="text-right">Aksionet</span>
           </div>
 
           <div className="divide-y divide-slate-100">
@@ -499,8 +522,26 @@ export function QuickOrdersForm({ action, products }: QuickOrdersFormProps) {
                     </span>
                   </div>
 
-                  <div className="text-sm font-semibold text-slate-950">
-                    €{variant.price.toFixed(2)}
+                  <div>
+                    <label className="sr-only" htmlFor={`unit-price-${row.id}`}>
+                      Cmimi i shitjes
+                    </label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">
+                        €
+                      </span>
+                      <input
+                        id={`unit-price-${row.id}`}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={row.unitPrice}
+                        onChange={(event) =>
+                          updateUnitPrice(row.id, event.target.value)
+                        }
+                        className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-8 pr-3 text-sm font-semibold text-slate-950 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-3">

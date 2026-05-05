@@ -61,12 +61,41 @@ export type MonthlySalesReport = {
   monthLabel: string;
   ordersCount: number;
   totalPairs: number;
+  activeModelsCount: number;
+  totalRevenue: number;
+  totalCost: number;
+  grossProfit: number;
   topSourceLabel: string | null;
   topSourceQuantity: number;
-  sourceBreakdown: Array<{ source: string; label: string; quantity: number }>;
-  topModels: Array<{ brand: string; name: string; quantity: number }>;
-  topBrands: Array<{ brand: string; quantity: number }>;
-  dailySales: Array<{ date: string; quantity: number }>;
+  sourceBreakdown: Array<{
+    source: string;
+    label: string;
+    quantity: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+  }>;
+  topModels: Array<{
+    brand: string;
+    name: string;
+    quantity: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+  }>;
+  topBrands: Array<{
+    brand: string;
+    quantity: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+  }>;
+  dailySales: Array<{
+    date: string;
+    quantity: number;
+    revenue: number;
+    profit: number;
+  }>;
 };
 
 export async function getMonthlySalesReport(selectedMonth: string) {
@@ -95,6 +124,7 @@ export async function getMonthlySalesReport(selectedMonth: string) {
       },
       select: {
         quantity: true,
+        unitPrice: true,
         order: {
           select: {
             source: true,
@@ -103,6 +133,7 @@ export async function getMonthlySalesReport(selectedMonth: string) {
         },
         variant: {
           select: {
+            price: true,
             product: {
               select: {
                 brand: true,
@@ -116,13 +147,34 @@ export async function getMonthlySalesReport(selectedMonth: string) {
   ]);
 
   const totalPairs = orderItems.reduce((sum, item) => sum + item.quantity, 0);
+  const totalRevenue = orderItems.reduce(
+    (sum, item) => sum + Number(item.unitPrice ?? 0) * item.quantity,
+    0,
+  );
+  const totalCost = orderItems.reduce(
+    (sum, item) => sum + Number(item.variant.price) * item.quantity,
+    0,
+  );
+  const grossProfit = totalRevenue - totalCost;
 
   const sourceMap = orderItems.reduce(
     (acc, item) => {
-      acc[item.order.source] = (acc[item.order.source] ?? 0) + item.quantity;
+      const revenue = Number(item.unitPrice ?? 0) * item.quantity;
+      const cost = Number(item.variant.price) * item.quantity;
+      const profit = revenue - cost;
+
+      acc[item.order.source] = {
+        quantity: (acc[item.order.source]?.quantity ?? 0) + item.quantity,
+        revenue: (acc[item.order.source]?.revenue ?? 0) + revenue,
+        cost: (acc[item.order.source]?.cost ?? 0) + cost,
+        profit: (acc[item.order.source]?.profit ?? 0) + profit,
+      };
       return acc;
     },
-    {} as Record<string, number>,
+    {} as Record<
+      string,
+      { quantity: number; revenue: number; cost: number; profit: number }
+    >,
   );
 
   const sourceLabels: Record<string, string> = {
@@ -132,7 +184,8 @@ export async function getMonthlySalesReport(selectedMonth: string) {
   };
 
   const topSourceEntry =
-    Object.entries(sourceMap).sort((a, b) => b[1] - a[1])[0] ?? null;
+    Object.entries(sourceMap).sort((a, b) => b[1].quantity - a[1].quantity)[0] ??
+    null;
 
   const modelMap = orderItems.reduce(
     (acc, item) => {
@@ -141,21 +194,54 @@ export async function getMonthlySalesReport(selectedMonth: string) {
         brand: item.variant.product.brand,
         name: item.variant.product.name,
         quantity: 0,
+        revenue: 0,
+        cost: 0,
+        profit: 0,
       };
+      const revenue = Number(item.unitPrice ?? 0) * item.quantity;
+      const cost = Number(item.variant.price) * item.quantity;
       current.quantity += item.quantity;
+      current.revenue += revenue;
+      current.cost += cost;
+      current.profit += revenue - cost;
       acc.set(key, current);
       return acc;
     },
-    new Map<string, { brand: string; name: string; quantity: number }>(),
+    new Map<
+      string,
+      {
+        brand: string;
+        name: string;
+        quantity: number;
+        revenue: number;
+        cost: number;
+        profit: number;
+      }
+    >(),
   );
 
   const brandMap = orderItems.reduce(
     (acc, item) => {
       const key = item.variant.product.brand;
-      acc.set(key, (acc.get(key) ?? 0) + item.quantity);
+      const current = acc.get(key) ?? {
+        quantity: 0,
+        revenue: 0,
+        cost: 0,
+        profit: 0,
+      };
+      const revenue = Number(item.unitPrice ?? 0) * item.quantity;
+      const cost = Number(item.variant.price) * item.quantity;
+      current.quantity += item.quantity;
+      current.revenue += revenue;
+      current.cost += cost;
+      current.profit += revenue - cost;
+      acc.set(key, current);
       return acc;
     },
-    new Map<string, number>(),
+    new Map<
+      string,
+      { quantity: number; revenue: number; cost: number; profit: number }
+    >(),
   );
 
   const dailyMap = orderItems.reduce(
@@ -166,10 +252,16 @@ export async function getMonthlySalesReport(selectedMonth: string) {
         month: "2-digit",
       }).format(item.order.createdAt);
 
-      acc.set(key, (acc.get(key) ?? 0) + item.quantity);
+      const current = acc.get(key) ?? { quantity: 0, revenue: 0, profit: 0 };
+      const revenue = Number(item.unitPrice ?? 0) * item.quantity;
+      const profit = revenue - Number(item.variant.price) * item.quantity;
+      current.quantity += item.quantity;
+      current.revenue += revenue;
+      current.profit += profit;
+      acc.set(key, current);
       return acc;
     },
-    new Map<string, number>(),
+    new Map<string, { quantity: number; revenue: number; profit: number }>(),
   );
 
   const topModels = [...modelMap.values()]
@@ -180,17 +272,31 @@ export async function getMonthlySalesReport(selectedMonth: string) {
     (source) => ({
       source,
       label: sourceLabels[source],
-      quantity: sourceMap[source] ?? 0,
+      quantity: sourceMap[source]?.quantity ?? 0,
+      revenue: sourceMap[source]?.revenue ?? 0,
+      cost: sourceMap[source]?.cost ?? 0,
+      profit: sourceMap[source]?.profit ?? 0,
     }),
   );
 
   const topBrands = [...brandMap.entries()]
-    .map(([brand, quantity]) => ({ brand, quantity }))
+    .map(([brand, values]) => ({
+      brand,
+      quantity: values.quantity,
+      revenue: values.revenue,
+      cost: values.cost,
+      profit: values.profit,
+    }))
     .sort((a, b) => b.quantity - a.quantity)
     .slice(0, 8);
 
   const dailySales = [...dailyMap.entries()]
-    .map(([date, quantity]) => ({ date, quantity }))
+    .map(([date, values]) => ({
+      date,
+      quantity: values.quantity,
+      revenue: values.revenue,
+      profit: values.profit,
+    }))
     .sort((a, b) => {
       const [aday, amonth] = a.date.split(".").map(Number);
       const [bday, bmonth] = b.date.split(".").map(Number);
@@ -208,8 +314,12 @@ export async function getMonthlySalesReport(selectedMonth: string) {
     monthLabel,
     ordersCount,
     totalPairs,
+    activeModelsCount: modelMap.size,
+    totalRevenue,
+    totalCost,
+    grossProfit,
     topSourceLabel: topSourceEntry ? sourceLabels[topSourceEntry[0]] : null,
-    topSourceQuantity: topSourceEntry?.[1] ?? 0,
+    topSourceQuantity: topSourceEntry?.[1].quantity ?? 0,
     sourceBreakdown,
     topModels,
     topBrands,

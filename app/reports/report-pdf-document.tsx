@@ -7,6 +7,14 @@ import {
 } from "@react-pdf/renderer";
 import type { MonthlySalesReport } from "@/lib/reports/monthly-sales-report";
 
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+  }).format(value);
+}
+
 const styles = StyleSheet.create({
   page: {
     padding: 32,
@@ -137,18 +145,14 @@ export function ReportPdfDocument({ report }: { report: MonthlySalesReport }) {
             <Text style={styles.statMeta}>Patika te shitura ne total</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Modele aktive</Text>
-            <Text style={styles.statValue}>{report.topModels.length}</Text>
-            <Text style={styles.statMeta}>Modele me shitje ne kete muaj</Text>
+            <Text style={styles.statLabel}>Shitje totale</Text>
+            <Text style={styles.statValue}>{formatCurrency(report.totalRevenue)}</Text>
+            <Text style={styles.statMeta}>Te ardhura nga shitja</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Burimi kryesor</Text>
-            <Text style={styles.statValue}>{report.topSourceLabel ?? "-"}</Text>
-            <Text style={styles.statMeta}>
-              {report.topSourceLabel
-                ? `${report.topSourceQuantity} cope`
-                : "Nuk ka shitje"}
-            </Text>
+            <Text style={styles.statLabel}>Fitimi bruto</Text>
+            <Text style={styles.statValue}>{formatCurrency(report.grossProfit)}</Text>
+            <Text style={styles.statMeta}>Kosto {formatCurrency(report.totalCost)}</Text>
           </View>
         </View>
 
@@ -157,7 +161,8 @@ export function ReportPdfDocument({ report }: { report: MonthlySalesReport }) {
             <View key={item.source} style={styles.sourceCard}>
               <Text style={styles.statLabel}>{item.label}</Text>
               <Text style={styles.statValue}>{item.quantity}</Text>
-              <Text style={styles.statMeta}>Copa te shitura</Text>
+              <Text style={styles.statMeta}>Shitje {formatCurrency(item.revenue)}</Text>
+              <Text style={styles.statMeta}>Fitim {formatCurrency(item.profit)}</Text>
             </View>
           ))}
         </View>

@@ -7,6 +7,14 @@ import {
   getMonthlySalesReport,
 } from "@/lib/reports/monthly-sales-report";
 
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+  }).format(value);
+}
+
 type ReportsPageProps = {
   searchParams?: Promise<{
     month?: string;
@@ -105,25 +113,23 @@ export default async function ReportsPage({
 
           <div className="rounded-[24px] border border-blue-100 bg-white px-5 py-5 shadow-sm print:break-inside-avoid print:shadow-none">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-              Modele aktive
+              Shitje totale
             </p>
             <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-              {report.topModels.length}
+              {formatCurrency(report.totalRevenue)}
             </p>
-            <p className="mt-2 text-sm text-slate-500">Modele me shitje ne kete muaj</p>
+            <p className="mt-2 text-sm text-slate-500">Te ardhura nga shitja</p>
           </div>
 
           <div className="rounded-[24px] border border-violet-100 bg-white px-5 py-5 shadow-sm print:break-inside-avoid print:shadow-none">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-              Burimi kryesor
+              Fitimi bruto
             </p>
             <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-              {report.topSourceLabel ?? "-"}
+              {formatCurrency(report.grossProfit)}
             </p>
             <p className="mt-2 text-sm text-slate-500">
-              {report.topSourceLabel
-                ? `${report.topSourceQuantity} cope`
-                : "Nuk ka shitje"}
+              Kosto totale {formatCurrency(report.totalCost)}
             </p>
           </div>
         </section>
@@ -146,7 +152,10 @@ export default async function ReportsPage({
                 <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
                   {item.quantity}
                 </p>
-                <p className="mt-2 text-sm text-slate-500">Copa te shitura</p>
+                <div className="mt-3 space-y-1 text-sm text-slate-500">
+                  <p>Shitje {formatCurrency(item.revenue)}</p>
+                  <p>Fitim {formatCurrency(item.profit)}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -171,6 +180,8 @@ export default async function ReportsPage({
                       <th className="px-6 py-4">Brandi</th>
                       <th className="px-6 py-4">Modeli</th>
                       <th className="px-6 py-4 text-right">Copa</th>
+                      <th className="px-6 py-4 text-right">Shitje</th>
+                      <th className="px-6 py-4 text-right">Fitim</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
@@ -180,6 +191,12 @@ export default async function ReportsPage({
                         <td className="px-6 py-4 font-medium text-slate-950">{item.name}</td>
                         <td className="px-6 py-4 text-right font-semibold text-slate-950">
                           {item.quantity}
+                        </td>
+                        <td className="px-6 py-4 text-right font-semibold text-slate-700">
+                          {formatCurrency(item.revenue)}
+                        </td>
+                        <td className="px-6 py-4 text-right font-semibold text-emerald-700">
+                          {formatCurrency(item.profit)}
                         </td>
                       </tr>
                     ))}
@@ -205,9 +222,14 @@ export default async function ReportsPage({
                       key={item.brand}
                       className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3"
                     >
-                      <span className="font-medium text-slate-800">{item.brand}</span>
-                      <span className="text-sm font-semibold text-slate-950">
-                        {item.quantity} cope
+                      <div>
+                        <p className="font-medium text-slate-800">{item.brand}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {item.quantity} cope
+                        </p>
+                      </div>
+                      <span className="text-sm font-semibold text-emerald-700">
+                        {formatCurrency(item.profit)}
                       </span>
                     </div>
                   ))
@@ -230,9 +252,14 @@ export default async function ReportsPage({
                       key={item.date}
                       className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3"
                     >
-                      <span className="font-medium text-slate-800">{item.date}</span>
+                      <div>
+                        <p className="font-medium text-slate-800">{item.date}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {item.quantity} cope
+                        </p>
+                      </div>
                       <span className="text-sm font-semibold text-slate-950">
-                        {item.quantity} cope
+                        {formatCurrency(item.profit)}
                       </span>
                     </div>
                   ))

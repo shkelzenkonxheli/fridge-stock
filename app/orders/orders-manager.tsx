@@ -16,6 +16,7 @@ type OrderItem = {
   color: string;
   imagePath?: string | null;
   quantity: number;
+  unitPrice?: number | null;
 };
 
 type OrderSummary = {
@@ -264,6 +265,11 @@ export function OrdersManager({
               <span className="inline-flex min-w-8 items-center justify-center rounded-xl bg-slate-100 px-2.5 py-1.5 text-sm font-semibold text-slate-700">
                 {order.totalQuantity} cope
               </span>
+              {typeof order.items[0]?.unitPrice === "number" ? (
+                <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
+                  €{order.items[0].unitPrice.toFixed(2)}
+                </span>
+              ) : null}
               <span
                 className={`inline-flex rounded-xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] ${sourceStyles[order.source]}`}
               >
@@ -293,6 +299,7 @@ export function OrdersManager({
               ) : null}
               <th className="px-5 py-4">Patika</th>
               <th className="px-5 py-4 text-center">Cope</th>
+              <th className="px-5 py-4 text-center">Cmimi</th>
               <th className="px-5 py-4">Burimi</th>
               <th className="px-5 py-4">Statusi</th>
               <th className="px-5 py-4">Data</th>
@@ -335,6 +342,13 @@ export function OrdersManager({
                 <td className="px-5 py-4 text-center">
                   <span className="inline-flex min-w-8 items-center justify-center rounded-xl bg-slate-100 px-2.5 py-1.5 font-semibold text-slate-700">
                     {order.totalQuantity}
+                  </span>
+                </td>
+                <td className="px-5 py-4 text-center">
+                  <span className="inline-flex min-w-[88px] items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 font-semibold text-slate-700">
+                    {typeof order.items[0]?.unitPrice === "number"
+                      ? `€${order.items[0].unitPrice.toFixed(2)}`
+                      : "-"}
                   </span>
                 </td>
                 <td className="px-5 py-4">

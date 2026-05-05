@@ -385,6 +385,7 @@ export default async function OrdersPage({
           select: {
             id: true,
             quantity: true,
+            unitPrice: true,
             variant: {
               select: {
                 size: true,
@@ -431,6 +432,7 @@ export default async function OrdersPage({
             color: item.variant.color,
             imagePath: item.variant.imagePath,
             quantity: item.quantity,
+            unitPrice: item.unitPrice ? Number(item.unitPrice) : null,
           }))
         : order.variant
           ? [
@@ -442,6 +444,7 @@ export default async function OrdersPage({
                 color: order.variant.color,
                 imagePath: order.variant.imagePath,
                 quantity: order.quantity ?? 0,
+                unitPrice: null,
               },
             ]
           : [];
